@@ -295,8 +295,10 @@ module dm_csrs #(
           resp_queue_data = data_q[$clog2(dm::DataCount)'(autoexecdata_idx)];
           if (!cmdbusy_i) begin
             // check whether we need to re-execute the command (just give a cmd_valid)
-            if (autoexecdata_idx < $bits(abstractauto_q.autoexecdata)) begin
+            if (int'(autoexecdata_idx) < $bits(abstractauto_q.autoexecdata)) begin
+              /* verilator lint_off WIDTH */
               cmd_valid_d = abstractauto_q.autoexecdata[autoexecdata_idx];
+              /* verilator lint_on WIDTH */
             end
           end
         end
@@ -367,8 +369,10 @@ module dm_csrs #(
           if (!cmdbusy_i && dm::DataCount > 0) begin
             data_d[dmi_req_i.addr[$clog2(dm::DataCount)-1:0]] = dmi_req_i.data;
             // check whether we need to re-execute the command (just give a cmd_valid)
-            if (autoexecdata_idx < $bits(abstractauto_q.autoexecdata)) begin
+            if (int'(autoexecdata_idx) < $bits(abstractauto_q.autoexecdata)) begin
+              /* verilator lint_off WIDTH */
               cmd_valid_d = abstractauto_q.autoexecdata[autoexecdata_idx];
+              /* verilator lint_on WIDTH */
             end
           end
         end
@@ -538,7 +542,7 @@ module dm_csrs #(
     // default assignment
     haltreq_o = '0;
     resumereq_o = '0;
-    if (selected_hart < (HartSelLen+1)'(NrHarts)) begin
+    if (selected_hart < (HartSelLen)'(NrHarts)) begin
       haltreq_o[selected_hart]   = dmcontrol_q.haltreq;
       resumereq_o[selected_hart] = dmcontrol_q.resumereq;
     end
@@ -555,7 +559,7 @@ module dm_csrs #(
   assign ndmreset_o = dmcontrol_q.ndmreset;
 
   // response FIFO
-  fifo_v2 #(
+  fifo_v3 #(
     .dtype            ( logic [31:0]         ),
     .DEPTH            ( 2                    )
   ) i_fifo (
@@ -564,9 +568,8 @@ module dm_csrs #(
     .flush_i          ( 1'b0                 ), // we do not need to flush this queue
     .testmode_i       ( testmode_i           ),
     .full_o           ( resp_queue_full      ),
+    .usage_o          (                      ),
     .empty_o          ( resp_queue_empty     ),
-    .alm_full_o       (                      ),
-    .alm_empty_o      (                      ),
     .data_i           ( resp_queue_data      ),
     .push_i           ( resp_queue_push      ),
     .data_o           ( dmi_resp_o.data      ),
